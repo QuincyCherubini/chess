@@ -4,6 +4,9 @@
 #
 # within a game all positions reached are stored in order to check if a draw
 # by repeated positions has occured
+#
+# Note: Since this is only used to consider repeated positions only those elements
+# needed will be included (will not use turn number or current player)
 ################################################################################
 
 

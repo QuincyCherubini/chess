@@ -1,4 +1,4 @@
-class piece:
+class Piece:
 
     # colour = {W, B)
     # name = {p, N, B, R, Q, K}
@@ -12,13 +12,367 @@ class piece:
     def get_name(self):
         return self.name
 
-class board:
+# defines the move from one location to another
+class Move:
 
-    # first element is row, second is location
+    def __init__(self, from_x, from_y, to_x, to_y, board, curr_player):
+        self.from_x = from_x
+        self.from_y = from_y
+        self.to_x = to_x
+        self.to_y = to_y
+        self.board = board
+        self.curr_player = curr_player
+
+        # set a variable for the opposing player
+        if curr_player == "W":
+            self.opp_player = "B"
+        else:
+            self.opp_player = "W"
+
+        # pieces at the locations
+        self.curr_piece = board.locations[from_x][from_y]
+        self.next_piece = board.locations[to_x][to_y]
+
+    # curr, next are an array of [row, col]
+    def move(self):
+
+        # check if the move is legal, then perform it
+        if self.is_legal_move(self.from_x, self.from_y, self.to_x, self.to_y, self.curr_piece, self.next_piece):
+            self.board.locations[self.to_x][self.to_y] = self.board.locations[self.from_x][self.from_y]
+            self.board.locations[self.from_x][self.from_y] = None
+
+            # promote pawn
+            if self.curr_piece.colour == "W" and self.curr_piece.name == "p" and self.to_y == 7:
+                new_peice = self.get_pawn_promotion()
+                self.board.locations[self.to_x][self.to_y] = Piece("W", new_peice)
+
+            if self.curr_piece.colour == "B" and self.curr_piece.name == "p" and self.to_y == 0:
+                new_peice = self.get_pawn_promotion()
+                self.board.locations[self.to_x][self.to_y] = Piece("B", new_peice)
+
+            # en passant
+            if self.curr_player == "W":
+                side_piece = self.board.locations[self.to_x][self.to_y - 1]
+                if self.from_y == 4 and self.to_y == 5 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
+                        side_piece.colour == "B" and side_piece.name == "p" and self.B_passant == self.to_x:
+                    self.board.locations[self.to_x][self.to_y - 1] = None
+
+            elif self.curr_player == "B":
+                side_piece = self.board.locations[self.to_x][self.to_y + 1]
+                if self.from_y == 3 and self.to_y == 2 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
+                        side_piece.colour == "W" and side_piece.name == "p" and self.A_passant == self.to_x:
+                    self.board.locations[self.to_x][self.to_y + 1] = None
+
+            # move the rook for castling
+            if self.curr_piece.name == "K":
+                # white castling short
+                if self.from_x == 4 and self.from_y == 0 and self.to_x == 6 and self.to_y == 0:
+                    self.board.locations[7][0] = None
+                    self.board.locations[5][0] = Piece("W", "R")
+
+                # white castling long
+                elif self.from_x == 4 and self.from_y == 0 and self.to_x == 2 and self.to_y == 0:
+                    self.board.locations[0][0] = None
+                    self.board.locations[3][0] = Piece("W", "R")
+
+                # black castling short
+                if self.from_x == 4 and self.from_y == 7 and self.to_x == 6 and self.to_y == 7:
+                    self.board.locations[7][7] = None
+                    self.board.locations[5][7] = Piece("B", "R")
+
+                # black castling long
+                elif self.from_x == 4 and self.from_y == 7 and self.to_x == 2 and self.to_y == 7:
+                    self.board.locations[0][7] = None
+                    self.board.locations[3][7] = Piece("B", "R")
+
+    # test if a move is legal
+    def is_legal_move(self):
+
+        # check to make sure both positions are on the board
+        if not self.board.is_in_range(self.from_x, self.from_y):
+            return False
+
+        if not self.board.is_in_range(self.to_x, self.to_y):
+            return False
+
+        # check if the piece at the current move is the current players
+        if self.curr_piece is None or self.curr_piece.colour != self.curr_player:
+            return False
+
+        # check to make sure the next location does not contain a piece of the current player's colour
+        # This will also catch trying to move to the current spot
+        if self.next_piece is not None and self.next_piece.colour == self.curr_player:
+            return False
+
+        # todo: check if King would be in check still
+
+        if self.curr_piece.name == "p":
+            return self.is_legal_pawn_move()
+
+        elif self.curr_piece.name == "B":
+            return self.is_legal_bishop_move()
+
+        elif self.curr_piece.name == "N":
+            return self.is_legal_knight_move()
+
+        elif self.curr_piece.name == "R":
+            return self.is_legal_rook_move()
+
+        elif self.curr_piece.name == "Q":
+            return self.is_legal_queen_move()
+
+        elif self.curr_piece.name == "K":
+            return self.is_legal_king_move()
+
+        # this should never happen
+        else:
+            print("You have passed an invalid piece")
+            return False
+
+    def is_legal_pawn_move(self):
+
+        # white player
+        if self.curr_player == "W":
+
+            # reset white passant status
+            self.W_passant = None
+
+            # moving one piece forward
+            if self.from_x == self.to_x and self.to_y - self.from_y == 1 and self.next_piece is None:
+                return True
+
+            # move two piece forward
+            if self.from_x == self.to_x and self.to_y - self.from_y == 2 and self.next_piece is None and self.from_y == 1:
+                self.W_passant = self.from_x
+                return True
+
+            # taking out a piece
+            if self.to_y - self.from_y == 1 and abs(self.from_x - self.to_x) == 1 and self.next_piece is not None and \
+                    self.next_piece.colour == "B":
+                return True
+
+            # en passant
+            side_piece = self.board.locations[self.to_x][self.to_y - 1]
+            if self.from_y == 4 and self.to_y == 5 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
+                    side_piece.colour == "B" and side_piece.name == "p" and self.B_passant == self.to_x:
+                return True
+
+            # if it is not one of these moves return False
+            return False
+
+        # Black's Turn
+        elif self.curr_player == "B":
+
+            # reset white passant status
+            self.B_passant = None
+
+            # moving one piece forward
+            if self.from_x == self.to_x and self.from_y - self.to_y == 1 and self.next_piece is None:
+                return True
+
+            # move two piece forward
+            if self.from_x == self.to_x and self.from_y - self.to_y == 2 and self.next_piece is None and self.from_y == 6:
+                self.B_passant = self.from_x
+                return True
+
+            # taking out a piece
+            if self.from_y - self.to_y == 1 and abs(self.from_x - self.to_x) == 1 and self.next_piece is not None and \
+                    self.next_piece.colour == "W":
+                return True
+
+            # en passant
+            side_piece = self.board.locations[self.to_x][self.to_y + 1]
+            if self.from_y == 3 and self.to_y == 2 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
+                    side_piece.colour == "W" and side_piece.name == "p" and self.A_passant == self.to_x:
+                return True
+
+            # if it is not one of these moves return False
+            return False
+
+        # this should never happen
+        else:
+            print("You have passed an invalid current player")
+            return False
+
+    def is_legal_bishop_move(self):
+
+        # if the bishop does not move on a diagonal return False
+        if abs(self.from_x - self.to_x) != abs(self.from_y - self.to_y):
+            return False
+
+        # check if any of the in between spots have a piece on them
+        if self.to_x > self.from_x:
+            x_range = range(self.from_x + 1, self.to_x)
+        else:
+            x_range = range(self.to_x + 1, self.from_x)[::-1]
+
+        if self.to_y > self.from_y:
+            y_range = range(self.from_y + 1, self.to_y)
+        else:
+            y_range = range(self.to_y + 1, self.from_y)[::-1]
+
+        for i in range(abs(self.from_x - self.to_x) - 1):
+            if self.board.locations[x_range[i]][y_range[i]] is not None:
+                return False
+
+        # otherwise return True
+        return True
+
+    def is_legal_knight_move(self):
+
+        x_diff = abs(self.from_x - self.to_x)
+        y_diff = abs(self.from_y - self.to_y)
+
+        if (x_diff == 1 and y_diff == 2) or (x_diff == 2 and y_diff == 1):
+            return True
+        else:
+            return False
+
+    def is_legal_rook_move(self):
+
+        # check if there are any pieces in the way
+        if self.from_x == self.to_x:
+            if self.to_y > self.from_y:
+                y_range = range(self.from_y + 1, self.to_y)
+            elif self.to_y < self.from_y:
+                y_range = range(self.to_y + 1, self.from_y)[::-1]
+
+            for i in range(abs(self.from_y - self.to_y) - 1):
+                if self.board.locations[self.to_x][y_range[i]] is not None:
+                    return False
+
+        elif self.from_y == self.to_y:
+            if self.to_x > self.from_x:
+                x_range = range(self.from_x + 1, self.to_x)
+            elif self.to_x < self.from_x:
+                x_range = range(self.to_x + 1, self.from_x)[::-1]
+
+            for i in range(abs(self.from_x - self.to_x) - 1):
+                if self.board.locations[x_range[i]][self.to_y] is not None:
+                    return False
+
+        # if the move is not on the same rank or file
+        else:
+            return False
+
+        # track that the rook has moved
+        if self.curr_piece.colour == "W":
+            if self.from_x == 0 and self.from_y == 0:
+                self.W_0_Rook_moved = True
+            elif self.from_x == 7 and self.from_y == 0:
+                self.W_7_Rook_moved = True
+
+        elif self.curr_piece.colour == "B":
+            if self.from_x == 0 and self.from_y == 7:
+                self.B_0_Rook_moved = True
+            elif self.from_x == 7 and self.from_y == 7:
+                self.B_7_Rook_moved = True
+
+        return True
+
+    def is_legal_queen_move(self):
+
+        # check if the queen moves like a rook
+        if self.from_x == self.to_x:
+            if self.to_y > self.from_y:
+                y_range = range(self.from_y + 1, self.to_y)
+            elif self.to_y < self.from_y:
+                y_range = range(self.to_y + 1, self.from_y)[::-1]
+
+            for i in range(abs(self.from_y - self.to_y) - 1):
+                if self.board.locations[self.to_x][y_range[i]] is not None:
+                    return False
+            return True
+
+        elif self.from_y == self.to_y:
+            if self.to_x > self.from_x:
+                x_range = range(self.from_x + 1, self.to_x)
+            elif self.to_x < self.from_x:
+                x_range = range(self.to_x + 1, self.from_x)[::-1]
+
+            for i in range(abs(self.from_x - self.to_x) - 1):
+                if self.board.locations[x_range[i]][self.to_y] is not None:
+                    return False
+            return True
+
+        # if it doesn't move like a rook does it move like a bishop
+        return self.is_legal_bishop_move()
+
+    # and king not in check
+    def is_legal_king_move(self):
+
+        # regular king move
+        x_diff = abs(self.from_x - self.to_x)
+        y_diff = abs(self.from_y - self.to_y)
+
+        if (x_diff == 0 and y_diff == 1) or (x_diff == 1 and y_diff == 0):
+            if self.curr_piece.colour == 'W':
+                self.W_King_moved = False
+            elif self.curr_piece.colour == 'B':
+                self.B_King_moved = False
+            return True
+
+        # white castling short
+        if self.from_x == 4 and self.from_y == 0 and self.to_x == 6 and self.to_y == 0:
+            # check if King and Rook haven't moved
+            if not self.W_King_moved and not self.W_7_Rook_moved and self.board.locations[5][0] is None and not \
+                    self.is_attacked(4, 0, "B") and not self.is_attacked(5, 0, "B") and not self.is_attacked(6, 0,
+                                                                                                             "B"):
+                self.W_King_moved = True
+                self.W_7_Rook_moved = True
+                # todo: check to make sure the King doesn't move through check
+                return True
+
+        # white castling long
+        # todo: fix this if statement
+        elif self.from_x == 4 and self.from_y == 0 and self.to_x == 2 and self.to_y == 0:
+            # check if King and Rook haven't moved
+            if not self.W_King_moved and not self.W_0_Rook_moved and self.board.locations[3][0] is None and \
+                    self.board.locations[1][0] and not self.is_attacked(5, 0, "B") is None:
+                self.W_King_moved = True
+                self.W_0_Rook_moved = True
+                # todo: check to make sure the King doesn't move through check
+                return True
+
+        # black castling short
+        if self.from_x == 4 and self.from_y == 7 and self.to_x == 6 and self.to_y == 7:
+            # check if King and Rook haven't moved
+            if not self.B_King_moved and not self.B_0_Rook_moved and self.board.locations[5][7] is None:
+                self.B_King_moved = True
+                self.B_0_Rook_moved = True
+                # todo: check to make sure the King doesn't move through check
+                return True
+
+        # black castling long
+        elif self.from_x == 4 and self.from_y == 7 and self.to_x == 2 and self.to_y == 7:
+            # check if King and Rook haven't moved
+            if not self.B_King_moved and not self.B_0_Rook_moved and self.board.locations[3][7] is None and \
+                    self.board.locations[1][7] is None:
+                self.B_King_moved = True
+                self.B_0_Rook_moved = True
+                # todo: check to make sure the King doesn't move through check
+                return True
+
+        # if none of these criteria are met return False
+        return False
+
+    def get_all_legal_moves(self):
+
+        if player_colour == "B":
+            attacking_colour = "W"
+        else:
+            attacking_colour = "B"
+
+        legal_moves = []
+
+        return legal_moves
+
+class Board:
+
+    # first element is row, second is colum
     # 0=a, 1=b, ... 7=h
     def __init__(self):
         self.locations = [[None for _ in range(8)] for _ in range(8)]
-        self.curr_player = "W"
 
         # track the conditions for castling
         self.W_King_moved = False
@@ -33,40 +387,40 @@ class board:
         self.B_passant = None
 
         # set the white pieces
-        self.locations[0][1] = piece("W", "p")
-        self.locations[1][1] = piece("W", "p")
-        self.locations[2][1] = piece("W", "p")
-        self.locations[3][1] = piece("W", "p")
-        self.locations[4][1] = piece("W", "p")
-        self.locations[5][1] = piece("W", "p")
-        self.locations[6][1] = piece("W", "p")
-        self.locations[7][1] = piece("W", "p")
-        self.locations[0][0] = piece("W", "R")
-        self.locations[1][0] = piece("W", "N")
-        self.locations[2][0] = piece("W", "B")
-        self.locations[3][0] = piece("W", "Q")
-        self.locations[4][0] = piece("W", "K")
-        self.locations[5][0] = piece("W", "B")
-        self.locations[6][0] = piece("W", "N")
-        self.locations[7][0] = piece("W", "R")
+        self.locations[0][1] = Piece("W", "p")
+        self.locations[1][1] = Piece("W", "p")
+        self.locations[2][1] = Piece("W", "p")
+        self.locations[3][1] = Piece("W", "p")
+        self.locations[4][1] = Piece("W", "p")
+        self.locations[5][1] = Piece("W", "p")
+        self.locations[6][1] = Piece("W", "p")
+        self.locations[7][1] = Piece("W", "p")
+        self.locations[0][0] = Piece("W", "R")
+        self.locations[1][0] = Piece("W", "N")
+        self.locations[2][0] = Piece("W", "B")
+        self.locations[3][0] = Piece("W", "Q")
+        self.locations[4][0] = Piece("W", "K")
+        self.locations[5][0] = Piece("W", "B")
+        self.locations[6][0] = Piece("W", "N")
+        self.locations[7][0] = Piece("W", "R")
 
         # set the black pieces
-        self.locations[0][6] = piece("B", "p")
-        self.locations[1][6] = piece("B", "p")
-        self.locations[2][6] = piece("B", "p")
-        self.locations[3][6] = piece("B", "p")
-        self.locations[4][6] = piece("B", "p")
-        self.locations[5][6] = piece("B", "p")
-        self.locations[6][6] = piece("B", "p")
-        self.locations[7][6] = piece("B", "p")
-        self.locations[0][7] = piece("B", "R")
-        self.locations[1][7] = piece("B", "N")
-        self.locations[2][7] = piece("B", "B")
-        self.locations[3][7] = piece("B", "Q")
-        self.locations[4][7] = piece("B", "K")
-        self.locations[5][7] = piece("B", "B")
-        self.locations[6][7] = piece("B", "N")
-        self.locations[7][7] = piece("B", "R")
+        self.locations[0][6] = Piece("B", "p")
+        self.locations[1][6] = Piece("B", "p")
+        self.locations[2][6] = Piece("B", "p")
+        self.locations[3][6] = Piece("B", "p")
+        self.locations[4][6] = Piece("B", "p")
+        self.locations[5][6] = Piece("B", "p")
+        self.locations[6][6] = Piece("B", "p")
+        self.locations[7][6] = Piece("B", "p")
+        self.locations[0][7] = Piece("B", "R")
+        self.locations[1][7] = Piece("B", "N")
+        self.locations[2][7] = Piece("B", "B")
+        self.locations[3][7] = Piece("B", "Q")
+        self.locations[4][7] = Piece("B", "K")
+        self.locations[5][7] = Piece("B", "B")
+        self.locations[6][7] = Piece("B", "N")
+        self.locations[7][7] = Piece("B", "R")
 
     #player can be "W" or "B"
     def display_board(self, player):
@@ -101,341 +455,6 @@ class board:
         else:
             print("display_board error: please pass a valid player value")
 
-    # curr, next are an array of [row, col]
-    def move(self, curr_x, curr_y, next_x, next_y):
-
-        # piece at the current location
-        curr_piece = self.locations[curr_x][curr_y]
-        next_piece = self.locations[next_x][next_y]
-
-        # check if the move is legal, then perform it
-        if self.is_legal_move(curr_x, curr_y, next_x, next_y, curr_piece, next_piece):
-            self.locations[next_x][next_y] = self.locations[curr_x][curr_y]
-            self.locations[curr_x][curr_y] = None
-
-            # promote pawn
-            if curr_piece.colour == "W" and curr_piece.name == "p" and next_y == 7:
-                new_peice = self.get_pawn_promotion()
-                self.locations[next_x][next_y] = piece("W", new_peice)
-
-            if curr_piece.colour == "B" and curr_piece.name == "p" and next_y == 0:
-                new_peice = self.get_pawn_promotion()
-                self.locations[next_x][next_y] = piece("B", new_peice)
-
-            # en passant
-            if self.curr_player == "W":
-                side_piece = self.locations[next_x][next_y - 1]
-                if curr_y == 4 and next_y == 5 and abs(next_x - curr_x) == 1 and side_piece is not None and \
-                        side_piece.colour == "B" and side_piece.name == "p" and self.B_passant == next_x:
-                    self.locations[next_x][next_y - 1] = None
-
-            elif self.curr_player == "B":
-                side_piece = self.locations[next_x][next_y + 1]
-                if curr_y == 3 and next_y == 2 and abs(next_x - curr_x) == 1 and side_piece is not None and \
-                        side_piece.colour == "W" and side_piece.name == "p" and self.A_passant == next_x:
-                    self.locations[next_x][next_y + 1] = None
-
-            # move the rook for castling
-            if curr_piece.name == "K":
-                # white castling short
-                if curr_x == 4 and curr_y == 0 and next_x == 6 and next_y == 0:
-                    self.locations[7][0] = None
-                    self.locations[5][0] = piece("W", "R")
-
-                # white castling long
-                elif curr_x == 4 and curr_y == 0 and next_x == 2 and next_y == 0:
-                    self.locations[0][0] = None
-                    self.locations[3][0] = piece("W", "R")
-
-                # black castling short
-                if curr_x == 4 and curr_y == 7 and next_x == 6 and next_y == 7:
-                    self.locations[7][7] = None
-                    self.locations[5][7] = piece("B", "R")
-
-                # black castling long
-                elif curr_x == 4 and curr_y == 7 and next_x == 2 and next_y == 7:
-                    self.locations[0][7] = None
-                    self.locations[3][7] = piece("B", "R")
-
-            # switch the which player's turn it is
-            if self.curr_player == "W":
-                self.curr_player = "B"
-            else:
-                self.curr_player = "W"
-        else:
-            print("this is not a valid move")
-
-    # test if a move is legal
-    def is_legal_move(self, curr_x, curr_y, next_x, next_y, curr_piece, next_piece):
-
-        # check to make sure both positions are on the board
-        if curr_x > 7 or curr_x < 0:
-            return False
-        if curr_y > 7 or curr_y < 0:
-            return False
-        if next_x > 7 or next_x < 0:
-            return False
-        if next_y > 7 or next_y < 0:
-            return False
-
-        # check if the piece at the current move is the current players
-        if curr_piece is None or curr_piece.colour != self.curr_player:
-            return False
-
-        # check to make sure the next location does not contain a piece of the current player's colour
-        # This will also catch trying to move to the current spot
-        if next_piece is not None and next_piece.colour == self.curr_player:
-            return False
-
-        # todo: check if King would be in check still
-
-        if curr_piece.name == "p":
-            return self.is_legal_pawn_move(curr_x, curr_y, next_x, next_y, next_piece)
-
-        elif curr_piece.name == "B":
-            return self.is_legal_bishop_move(curr_x, curr_y, next_x, next_y)
-
-        elif curr_piece.name == "N":
-            return self.is_legal_knight_move(curr_x, curr_y, next_x, next_y)
-
-        elif curr_piece.name == "R":
-            return self.is_legal_rook_move(curr_x, curr_y, next_x, next_y, curr_piece)
-
-        elif curr_piece.name == "Q":
-            return self.is_legal_queen_move(curr_x, curr_y, next_x, next_y)
-
-        elif curr_piece.name == "K":
-            return self.is_legal_king_move(curr_x, curr_y, next_x, next_y, curr_piece)
-
-        # this should never happen
-        else:
-            print("You have passed an invalid piece")
-            return False
-
-    def is_legal_pawn_move(self, curr_x, curr_y, next_x, next_y, next_piece):
-
-        # white player
-        if self.curr_player == "W":
-
-            # reset white passant status
-            self.W_passant = None
-
-            # moving one piece forward
-            if curr_x == next_x and next_y - curr_y == 1 and next_piece is None:
-                return True
-
-            # move two piece forward
-            if curr_x == next_x and next_y - curr_y == 2 and next_piece is None and curr_y == 1:
-                self.W_passant = curr_x
-                return True
-
-            # taking out a piece
-            if next_y - curr_y == 1 and abs(curr_x - next_x) == 1 and next_piece is not None and \
-                    next_piece.colour == "B":
-                return True
-
-            # en passant
-            side_piece = self.locations[next_x][next_y - 1]
-            if curr_y == 4 and next_y == 5 and abs(next_x - curr_x) == 1 and side_piece is not None and \
-                    side_piece.colour == "B" and side_piece.name == "p" and self.B_passant == next_x:
-                return True
-
-            # if it is not one of these moves return False
-            return False
-
-        # Black's Turn
-        elif self.curr_player == "B":
-
-            # reset white passant status
-            self.B_passant = None
-
-            # moving one piece forward
-            if curr_x == next_x and curr_y - next_y == 1 and next_piece is None:
-                return True
-
-            # move two piece forward
-            if curr_x == next_x and curr_y - next_y == 2 and next_piece is None and curr_y == 6:
-                self.B_passant = curr_x
-                return True
-
-            # taking out a piece
-            if curr_y - next_y == 1 and abs(curr_x - next_x) == 1 and next_piece is not None and \
-                    next_piece.colour == "W":
-                return True
-
-            # en passant
-            side_piece = self.locations[next_x][next_y + 1]
-            if curr_y == 3 and next_y == 2 and abs(next_x - curr_x) == 1 and side_piece is not None and \
-                    side_piece.colour == "W" and side_piece.name == "p" and self.A_passant == next_x:
-                return True
-
-            # if it is not one of these moves return False
-            return False
-
-        # this should never happen
-        else:
-            print("You have passed an invalid current player")
-            return False
-
-    def is_legal_bishop_move(self, curr_x, curr_y, next_x, next_y):
-
-        # if the bishop does not move on a diagonal return False
-        if abs(curr_x - next_x) != abs(curr_y - next_y):
-            return False
-
-        # check if any of the in between spots have a piece on them
-        if next_x > curr_x:
-            x_range = range(curr_x + 1, next_x)
-        else:
-            x_range = range(next_x + 1, curr_x)[::-1]
-
-        if next_y > curr_y:
-            y_range = range(curr_y + 1, next_y)
-        else:
-            y_range = range(next_y + 1, curr_y)[::-1]
-
-        for i in range(abs(curr_x - next_x) - 1):
-            if self.locations[x_range[i]][y_range[i]] is not None:
-                return False
-
-        # otherwise return True
-        return True
-
-    def is_legal_knight_move(self, curr_x, curr_y, next_x, next_y):
-
-        x_diff = abs(curr_x - next_x)
-        y_diff = abs(curr_y - next_y)
-
-        if (x_diff == 1 and y_diff == 2) or (x_diff == 2 and y_diff == 1):
-            return True
-        else:
-            return False
-
-    def is_legal_rook_move(self, curr_x, curr_y, next_x, next_y, curr_piece):
-
-        # check if there are any pieces in the way
-        if curr_x == next_x:
-            if next_y > curr_y:
-                y_range = range(curr_y + 1, next_y)
-            elif next_y < curr_y:
-                y_range = range(next_y + 1, curr_y)[::-1]
-
-            for i in range(abs(curr_y - next_y) - 1):
-                if self.locations[next_x][y_range[i]] is not None:
-                    return False
-
-        elif curr_y == next_y:
-            if next_x > curr_x:
-                x_range = range(curr_x + 1, next_x)
-            elif next_x < curr_x:
-                x_range = range(next_x + 1, curr_x)[::-1]
-
-            for i in range(abs(curr_x - next_x) - 1):
-                if self.locations[x_range[i]][next_y] is not None:
-                    return False
-
-        # if the move is not on the same rank or file
-        else:
-            return False
-
-        # track that the rook has moved
-        if curr_piece.colour == "W":
-            if curr_x == 0 and curr_y == 0:
-                self.W_0_Rook_moved = True
-            elif curr_x == 7 and curr_y == 0:
-                self.W_7_Rook_moved = True
-
-        elif curr_piece.colour == "B":
-            if curr_x == 0 and curr_y == 7:
-                self.B_0_Rook_moved = True
-            elif curr_x == 7 and curr_y == 7:
-                self.B_7_Rook_moved = True
-
-        return True
-
-    def is_legal_queen_move(self, curr_x, curr_y, next_x, next_y):
-
-        # check if the queen moves like a rook
-        if curr_x == next_x:
-            if next_y > curr_y:
-                y_range = range(curr_y + 1, next_y)
-            elif next_y < curr_y:
-                y_range = range(next_y + 1, curr_y)[::-1]
-
-            for i in range(abs(curr_y - next_y) - 1):
-                if self.locations[next_x][y_range[i]] is not None:
-                    return False
-            return True
-
-        elif curr_y == next_y:
-            if next_x > curr_x:
-                x_range = range(curr_x + 1, next_x)
-            elif next_x < curr_x:
-                x_range = range(next_x + 1, curr_x)[::-1]
-
-            for i in range(abs(curr_x - next_x) - 1):
-                if self.locations[x_range[i]][next_y] is not None:
-                    return False
-            return True
-
-        # if it doesn't move like a rook does it move like a bishop
-        return self.is_legal_bishop_move(curr_x, curr_y, next_x, next_y)
-
-    # and king not in check
-    def is_legal_king_move(self, curr_x, curr_y, next_x, next_y, curr_piece):
-
-        # regular king move
-        x_diff = abs(curr_x - next_x)
-        y_diff = abs(curr_y - next_y)
-
-        if (x_diff == 0 and y_diff == 1) or (x_diff == 1 and y_diff == 0):
-            if curr_piece.colour == 'W':
-                self.W_King_moved = False
-            elif curr_piece.colour == 'B':
-                self.B_King_moved = False
-            return True
-
-        # white castling short
-        if curr_x == 4 and curr_y == 0 and next_x == 6 and next_y == 0:
-            # check if King and Rook haven't moved
-            if not self.W_King_moved and not self.W_7_Rook_moved and self.locations[5][0] is None and not \
-                    self.is_attacked(4, 0, "B") and not self.is_attacked(5, 0, "B") and not self.is_attacked(6, 0, "B"):
-                self.W_King_moved = True
-                self.W_7_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
-
-        # white castling long
-        elif curr_x == 4 and curr_y == 0 and next_x == 2 and next_y == 0:
-            # check if King and Rook haven't moved
-            if not self.W_King_moved and not self.W_0_Rook_moved and self.locations[3][0] is None and self.locations[1][0]\
-                    and not self.is_attacked(5, 0, "B") is None:
-                self.W_King_moved = True
-                self.W_0_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
-
-        # black castling short
-        if curr_x == 4 and curr_y == 7 and next_x == 6 and next_y == 7:
-            # check if King and Rook haven't moved
-            if not self.B_King_moved and not self.B_0_Rook_moved and self.locations[5][7] is None:
-                self.B_King_moved = True
-                self.B_0_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
-
-        # black castling long
-        elif curr_x == 4 and curr_y == 7 and next_x == 2 and next_y == 7:
-            # check if King and Rook haven't moved
-            if not self.B_King_moved and not self.B_0_Rook_moved and self.locations[3][7] is None and self.locations[1][7] is None:
-                self.B_King_moved = True
-                self.B_0_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
-
-        # if none of these criteria are met return False
-        return False
-
     # get user input for what piece to promote a pawn to
     def get_pawn_promotion(self):
 
@@ -447,7 +466,17 @@ class board:
             else:
                 print("Please enter a valid piece")
 
-    # check if a give postition is being attacked by attackaing_colour
+    # check if a location is on the board
+    def is_in_range(self, x_pos, y_pos):
+
+        if x_pos > 7 or x_pos < 0:
+            return False
+        if y_pos > 7 or y_pos < 0:
+            return False
+
+        return True
+
+    # check if a give position is being attacked by attacking_colour
     def is_attacked(self, x_pos, y_pos, attacking_colour):
 
         if self.is_attacked_pawn(x_pos, y_pos, attacking_colour):
@@ -649,21 +678,166 @@ class board:
         # if none of the surrounding pieces contain a King return False
         return False
 
-
     # test if the player player_colour is checkmated
     def is_checkmated(self, player_colour):
-        # check if the King is currently attacked and all squares around it are either attacked or contain an opposite colour piece
 
-        return False
+        if player_colour == "B":
+            attacking_colour = "W"
+        else:
+            attacking_colour = "B"
+
+        # get the location of the player's King
+        King_pos = None
+        for x in self.locations:
+            for y in x:
+                cur_loc = self.locations[x][y]
+                if piece is not None and cur_loc.name == "K" and cur_loc.colour == player_colour:
+                    King_pos = [x, y]
+                    break
+            if King_pos is not None:
+                break
+
+        # if the King is not attacked return False, it can't be mate
+        if not self.is_attacked(King_pos[0], King_pos[1], attacking_colour):
+            return False
+
+        # Check if each square surrounding the King is attacked or contains a piece of the same colour
+        for x_pos in range(King_pos[0] - 1, King_pos[0] + 2):
+            for y_pos in range(King_pos[1] - 1, King_pos[1] + 2):
+                if self.is_in_range(x_pos, y_pos) and (x_pos != King_pos[0] and y_pos != King_pos[1]):
+                    # check if there is a player's piece
+                    cur_loc = self.locations[x_pos][y_pos]
+                    if cur_loc is not None and cur_loc.colour == player_colour:
+                        continue
+                    if not self.is_attacked(x_pos, y_pos, attacking_colour):
+                        return False
+
+        # This can only be reached if checkmate has occurred
+        return True
 
     # checks if the player who's turn it is (turn_colour) is in a stalemate
-    def is_stalemate(self, turn_colour):
-        return False
+    def is_stalemate(self, player_colour):
+
+        # King must not be attacked
+        # King must not be able to move
+        # no other pieces of the player may be able to move
+
+        if player_colour == "B":
+            attacking_colour = "W"
+        else:
+            attacking_colour = "B"
+
+            # get the location of the player's King
+        King_pos = None
+        for x in self.locations:
+            for y in x:
+                cur_loc = self.locations[x][y]
+                if cur_loc is not None and cur_loc.name == "K" and cur_loc.colour == player_colour:
+                    King_pos = [x, y]
+                    break
+            if King_pos is not None:
+                break
+
+        # if the King is attacked return False
+        if self.is_attacked(King_pos[0], King_pos[1], attacking_colour):
+            return False
+
+        # check if there is a square the King can move too
+        for x_pos in range(King_pos[0] - 1, King_pos[0] + 2):
+            for y_pos in range(King_pos[1] - 1, King_pos[1] + 2):
+                if self.is_in_range(x_pos, y_pos) and (x_pos != King_pos[0] and y_pos != King_pos[1]):
+                    # check if there is a player's piece
+                    cur_loc = self.locations[x_pos][y_pos]
+                    if cur_loc is not None and cur_loc.colour == player_colour:
+                        continue
+                    if not self.is_attacked(x_pos, y_pos, attacking_colour):
+                        return False
+
+        # check if another of the player's pieces can move
+        # pieces cannot move if they are blocked in by their own pieces or pinned to the King
+
+        # loop through all locations to find player's pieces
+        for x in self.locations:
+            for y in x:
+                cur_loc = self.locations[x][y]
+                # todo: check for pins
+                if cur_loc is not None and cur_loc.colour == player_colour:
+                    # if pawn can move forward or take return false
+                    if cur_loc.name == "p":
+                        # check if pawn can move forward
+                        # check if pawn can capture
+                    elif cur_loc.name == "N":
+                        # stuff
+                    elif cur_loc.name == "B":
+                        # stuff
+                    elif cur_loc.name == "R":
+                        # stuff
+                    elif cur_loc.name == "Q":
+                        # stuff
+
+        # if it's reached this point it's stalemate
+        return True
+
 
     # if same position is reached 3 times a player can call a draw
 
     # if no piece has been captured or pawn moved in 50 turns a player can claim a draw
+    def is_50_moves(self):
+        return self.drawing_moves == 50
 
-    # if insuffiencient material for a checkmate the game is a draw
+    # if insuffiencient material for a checkmate by either side the game is a draw
+    # the draws are K vs.K, K+B vs. K, K+N vs. K, and K+B vs K+B of same colour
+    # however I may also include pieces where a checkmate cannot be forced with reasonably play
+    # these combos are: K+N+N v K, K+R vs. K+R and K+R vs. K+N or K+B
 
-    # 
+    # winning material
+    # may add a function to consider a game won for the MCTS if we reach K vs. K+R, K vs. K+Q, or K vs. K+B+B
+
+class Game:
+
+    def __init__(self):
+
+        # set up a new board on game start
+        self.board = Board()
+        # resets on a pawn move or piece capture, if this number reaches 50 the game is a draw
+        self.drawing_moves = 0
+        # this will log all of the positions and then check if the same has been reached 3 times
+        self.position_history = []
+        self.curr_player = "W"
+
+    # executes a move
+    def move(self, from_x, from_y, to_x, to_y):
+
+        my_move = Move(from_x, from_y, to_x, to_y, self.board, self.curr_player)
+
+        # if the move is legal make it
+        if my_move.is_legal_move():
+            my_move.execute()
+
+            # todo: check if move resets draw counter
+            # check if the move is a pawn move or a capture, if so reset self.drawing_moves
+            from_piece = self.board.locations[from_x][from_y]
+            to_piece = self.board.locations[to_x][to_y]
+
+            if from_piece.name == "p":
+                self.drawing_moves = 0
+            elif to_piece is not None:
+                self.drawing_moves = 0
+            # up the count after blacks turn
+            elif from_piece.colour == "B":
+                self.drawing_moves += 1
+
+            # todo: check if the move resulted in a checkmate
+
+            # todo: add the new position to the list of positions
+
+            # todo: check if the omve resulted in a draw
+
+            if self.curr_player == "W":
+                self.curr_player = "B"
+            else:
+                self.curr_player == "W"
+
+        # if the move provided was not legal:
+        else:
+            print("Illegal move passed to Game")
