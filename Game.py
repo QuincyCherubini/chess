@@ -1,26 +1,29 @@
-from board import board
+from board import Game
 
 
 def run():
-    new_board = board()
-    new_board.display_board("W")
+    new_game = Game()
+    new_game.position.display_position("W")
 
     while True:
 
         # todo: test to make sure ints
         # get the move
-        curr_col = inputNumber("Enter curr_col: ")
+        curr_col = input_number("Enter curr_col: ")
         if curr_col == 99:
             break
-        curr_row = inputNumber("Enter curr_row: ")
-        next_col = inputNumber("Enter next_col: ")
-        next_row = inputNumber("Enter next_row: ")
+        curr_row = input_number("Enter curr_row: ")
+        next_col = input_number("Enter next_col: ")
+        next_row = input_number("Enter next_row: ")
 
-        new_board.move(curr_col, curr_row, next_col, next_row)
-        new_board.display_board("W")
+        new_game.move(curr_col, curr_row, next_col, next_row)
+        new_game.position.display_position("W")
+
+        if new_game.game_is_over():
+            break
 
 
-def inputNumber(message):
+def input_number(message):
 
     while True:
         try:
