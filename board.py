@@ -12,6 +12,7 @@ class Piece:
     def get_name(self):
         return self.name
 
+
 # defines the move from one location to another
 class Move:
 
@@ -51,13 +52,13 @@ class Move:
                 self.position.locations[self.to_x][self.to_y] = Piece("B", new_peice)
 
             # en passant
-            if self.curr_player == "W":
+            if self.curr_player == "W" and self.curr_piece.name == "p":
                 side_piece = self.position.locations[self.to_x][self.to_y - 1]
                 if self.from_y == 4 and self.to_y == 5 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
                         side_piece.colour == "B" and side_piece.name == "p" and self.position.B_passant == self.to_x:
                     self.position.locations[self.to_x][self.to_y - 1] = None
 
-            elif self.curr_player == "B":
+            elif self.curr_player == "B" and self.curr_piece.name == "p":
                 side_piece = self.position.locations[self.to_x][self.to_y + 1]
                 if self.from_y == 3 and self.to_y == 2 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
                         side_piece.colour == "W" and side_piece.name == "p" and self.position.W_passant == self.to_x:
@@ -69,21 +70,29 @@ class Move:
                 if self.from_x == 4 and self.from_y == 0 and self.to_x == 6 and self.to_y == 0:
                     self.position.locations[7][0] = None
                     self.position.locations[5][0] = Piece("W", "R")
+                    self.position.W_King_moved = True
+                    self.position.W_7_Rook_moved = True
 
                 # white castling long
                 elif self.from_x == 4 and self.from_y == 0 and self.to_x == 2 and self.to_y == 0:
                     self.position.locations[0][0] = None
                     self.position.locations[3][0] = Piece("W", "R")
+                    self.position.W_King_moved = True
+                    self.position.W_0_Rook_moved = True
 
                 # black castling short
                 if self.from_x == 4 and self.from_y == 7 and self.to_x == 6 and self.to_y == 7:
                     self.position.locations[7][7] = None
                     self.position.locations[5][7] = Piece("B", "R")
+                    self.position.B_King_moved = True
+                    self.position.B_7_Rook_moved = True
 
                 # black castling long
                 elif self.from_x == 4 and self.from_y == 7 and self.to_x == 2 and self.to_y == 7:
                     self.position.locations[0][7] = None
                     self.position.locations[3][7] = Piece("B", "R")
+                    self.position.B_King_moved = True
+                    self.position.B_0_Rook_moved = True
 
     # test if a move is legal
     def is_legal_move(self):
@@ -91,7 +100,6 @@ class Move:
         # check to make sure both positions are on the position
         if not self.position.is_in_range(self.from_x, self.from_y):
             return False
-
         if not self.position.is_in_range(self.to_x, self.to_y):
             return False
 
@@ -298,7 +306,6 @@ class Move:
         # if it doesn't move like a rook does it move like a bishop
         return self.is_legal_bishop_move()
 
-    # and king not in check
     def is_legal_king_move(self):
 
         # regular king move
@@ -307,51 +314,81 @@ class Move:
 
         if (x_diff == 0 and y_diff == 1) or (x_diff == 1 and y_diff == 0):
             if self.curr_piece.colour == 'W':
-                self.W_King_moved = False
+                self.position.W_King_moved = False
             elif self.curr_piece.colour == 'B':
-                self.B_King_moved = False
+                self.position.B_King_moved = False
             return True
 
         # white castling short
         if self.from_x == 4 and self.from_y == 0 and self.to_x == 6 and self.to_y == 0:
             # check if King and Rook haven't moved
-            if not self.W_King_moved and not self.W_7_Rook_moved and self.position.locations[5][0] is None and not \
-                    self.is_attacked(4, 0, "B") and not self.is_attacked(5, 0, "B") and not self.is_attacked(6, 0,
-                                                                                                             "B"):
-                self.W_King_moved = True
-                self.W_7_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
+            if not self.position.W_King_moved and not self.position.W_7_Rook_moved:
+                # check if the squares in between are blank (6, 0 is tested by default in legal move check)
+                if self.position.locations[5][0] is None:
+                    # check to make sure King does not move through check
+                    if not self.position.is_attacked(4, 0, "B") and not self.position.is_attacked(5, 0, "B") and \
+                            not self.position.is_attacked(6, 0, "B"):
+                        # todo: make sure the actual move handles these variables
+                        # self.position.W_King_moved = True
+                        # self.W_7_Rook_moved = True
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
 
         # white castling long
-        # todo: fix this if statement
         elif self.from_x == 4 and self.from_y == 0 and self.to_x == 2 and self.to_y == 0:
             # check if King and Rook haven't moved
-            if not self.W_King_moved and not self.W_0_Rook_moved and self.position.locations[3][0] is None and \
-                    self.position.locations[1][0] and not self.is_attacked(5, 0, "B") is None:
-                self.W_King_moved = True
-                self.W_0_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
+            if not self.position.W_King_moved and not self.position.W_0_Rook_moved:
+                # check if the squares in between are blank
+                if self.position.locations[3][0] is None and self.position.locations[1][0] is None:
+                    # check to make sure King does not move through check
+                    if not self.position.is_attacked(4, 0, "B") and not self.position.is_attacked(3, 0, "B") and \
+                            not self.position.is_attacked(2, 0, "B"):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
 
         # black castling short
         if self.from_x == 4 and self.from_y == 7 and self.to_x == 6 and self.to_y == 7:
             # check if King and Rook haven't moved
-            if not self.B_King_moved and not self.B_0_Rook_moved and self.position.locations[5][7] is None:
-                self.B_King_moved = True
-                self.B_0_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
+            if not self.position.B_King_moved and not self.position.B_0_Rook_moved:
+                # check if the squares in between are blank
+                if self.position.locations[5][7] is None:
+                    # check to make sure King does not move through check
+                    if not self.position.is_attacked(4, 7, "W") and not self.position.is_attacked(5, 7, "W") and \
+                            not self.position.is_attacked(6, 7, "W"):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
 
         # black castling long
         elif self.from_x == 4 and self.from_y == 7 and self.to_x == 2 and self.to_y == 7:
             # check if King and Rook haven't moved
-            if not self.B_King_moved and not self.B_0_Rook_moved and self.position.locations[3][7] is None and \
-                    self.position.locations[1][7] is None:
-                self.B_King_moved = True
-                self.B_0_Rook_moved = True
-                # todo: check to make sure the King doesn't move through check
-                return True
+            if not self.position.B_King_moved and not self.position.B_0_Rook_moved:
+                # check if the squares in between are blank
+                if self.position.locations[3][7] is None and self.position.locations[1][7] is None:
+                    # check to make sure King does not move through check
+                    if not self.position.is_attacked(4, 7, "W") and not self.position.is_attacked(3, 7, "W") and \
+                            not self.position.is_attacked(2, 7, "W"):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
 
         # if none of these criteria are met return False
         return False
@@ -681,7 +718,6 @@ class Game:
 
             my_move.execute()
 
-            # todo: check if move resets draw counter
             # check if the move is a pawn move or a capture, if so reset self.drawing_moves
             if from_piece.name == "p":
                 self.drawing_moves = 0
@@ -691,7 +727,10 @@ class Game:
             elif from_piece.colour == "B":
                 self.drawing_moves += 1
 
-            # todo: add the new position to the list of positions
+            # add the new position to the list of positions
+            fen_converter = FEN_converter(self.position, self.curr_player)
+            fen = fen_converter.convert_to_FEN()
+            self.position_history.append(fen)
 
             if self.curr_player == "W":
                 self.curr_player = "B"
@@ -796,6 +835,7 @@ class Game:
         legal_moves = self.get_all_legal_moves()
         return len(legal_moves) == 0
 
+    # todo:
     # if same position is reached 3 times a player can call a draw
     def repeated_position(self):
         return False
@@ -804,6 +844,7 @@ class Game:
     def is_50_moves(self):
         return self.drawing_moves == 50
 
+    # todo:
     # if insuffiencient material for a checkmate by either side the game is a draw
     # the draws are K vs.K, K+B vs. K, K+N vs. K, and K+B vs K+B of same colour
     # however I may also include pieces where a checkmate cannot be forced with reasonably play
@@ -815,6 +856,7 @@ class Game:
 
         return False
 
+    # todo
     # winning material
     # may add a function to consider a game won for the MCTS if we reach K vs. K+R, K vs. K+Q, or K vs. K+B+B
     # Assuming the King cannot immediately capture one of these pieces
@@ -825,6 +867,7 @@ class Game:
 
         return False
 
+    # todo: Should this be broken up?
     def get_all_legal_moves(self):
 
         legal_moves = []
@@ -962,3 +1005,96 @@ class Game:
                                         legal_moves.append(new_move)
 
         return legal_moves
+
+
+class FEN_converter:
+    ################################################################################
+    # This class converts a chess position to FEN Notation
+    # (https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
+    #
+    # within a game all positions reached are stored in order to check if a draw
+    # by repeated positions has occurred
+    #
+    # Note: Since this is only used to consider repeated positions only those elements
+    # needed will be included (will not use turn number etc.)
+    ################################################################################
+
+    def __init__(self, position, curr_player):
+        self.position = position
+        self.curr_player = curr_player
+
+    def convert_to_FEN(self):
+
+        FEN = ""
+
+        # record the positions of the pieces
+        for row in [7, 6, 5, 4, 3, 2, 1, 0]:
+            blank_count = 0
+
+            for col in [0, 1, 2, 3, 4, 5, 6, 7]:
+                piece = self.position.locations[col][row]
+                if piece is None:
+                    blank_count += 1
+                else:
+                    piece_nm = piece.name
+                    # convert to upper case for white or lower case for black
+                    if piece.colour == "W":
+                        piece_nm = piece_nm.upper()
+                    else:
+                        piece_nm = piece_nm.lower()
+
+                    # check if the previous pieces were blanks, if so add the count to the string and reset
+                    if blank_count > 0:
+                        FEN += str(blank_count)
+                        blank_count = 0
+
+                    # add the peice to the FEN
+                    FEN += piece_nm
+
+            # add on the last blank count if required
+            if blank_count > 0:
+                FEN += str(blank_count)
+
+            # add a "/" at the end of each line other than the last which has a " "
+            if row != 0:
+                FEN += "/"
+            else:
+                FEN += " "
+
+        # add the current player
+        FEN = FEN + self.curr_player + " "
+
+        # add castling
+        castle_string = ""
+        if not self.position.W_King_moved:
+            if not self.position.W_7_Rook_moved:
+                castle_string += "K"
+            if not self.position.W_0_Rook_moved:
+                castle_string += "Q"
+        if not self.position.B_King_moved:
+            if not self.position.B_7_Rook_moved:
+                castle_string += "k"
+            if not self.position.B_0_Rook_moved:
+                castle_string += "q"
+        # if no castling is available use "-"
+        if castle_string == "":
+            castle_string = "-"
+
+        FEN += castle_string
+        FEN += " "
+
+        # add en passant piece
+        if self.curr_player == "W":
+            if self.position.B_passant is not None:
+                FEN += str(self.position.B_passant)
+            else:
+                FEN += "-"
+        else:
+            if self.position.W_passant is not None:
+                FEN += str(self.position.W_passant)
+            else:
+                FEN += "-"
+
+        return FEN
+
+

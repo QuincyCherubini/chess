@@ -7,7 +7,6 @@ def run():
 
     while True:
 
-        # todo: test to make sure ints
         # get the move
         curr_col = input_number("Enter curr_col: ")
         if curr_col == 99:
@@ -18,6 +17,9 @@ def run():
 
         new_game.move(curr_col, curr_row, next_col, next_row)
         new_game.position.display_position("W")
+
+        # test FEN
+        print("FEN list: {}".format(new_game.position_history))
 
         if new_game.game_is_over():
             break
