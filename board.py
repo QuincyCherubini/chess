@@ -35,64 +35,63 @@ class Move:
         self.next_piece = position.locations[to_x][to_y]
 
     # curr, next are an array of [row, col]
+    # note this is only called after is_legal_move check has been completed
     def execute(self):
 
-        # check if the move is legal, then perform it
-        if self.is_legal_move():
-            self.position.locations[self.to_x][self.to_y] = self.position.locations[self.from_x][self.from_y]
-            self.position.locations[self.from_x][self.from_y] = None
+        self.position.locations[self.to_x][self.to_y] = self.position.locations[self.from_x][self.from_y]
+        self.position.locations[self.from_x][self.from_y] = None
 
-            # promote pawn
-            if self.curr_piece.colour == "W" and self.curr_piece.name == "p" and self.to_y == 7:
-                new_peice = self.get_pawn_promotion()
-                self.position.locations[self.to_x][self.to_y] = Piece("W", new_peice)
+        # promote pawn
+        if self.curr_piece.colour == "W" and self.curr_piece.name == "p" and self.to_y == 7:
+            new_peice = self.get_pawn_promotion()
+            self.position.locations[self.to_x][self.to_y] = Piece("W", new_peice)
 
-            if self.curr_piece.colour == "B" and self.curr_piece.name == "p" and self.to_y == 0:
-                new_peice = self.get_pawn_promotion()
-                self.position.locations[self.to_x][self.to_y] = Piece("B", new_peice)
+        if self.curr_piece.colour == "B" and self.curr_piece.name == "p" and self.to_y == 0:
+            new_peice = self.get_pawn_promotion()
+            self.position.locations[self.to_x][self.to_y] = Piece("B", new_peice)
 
-            # en passant
-            if self.curr_player == "W" and self.curr_piece.name == "p":
-                side_piece = self.position.locations[self.to_x][self.to_y - 1]
-                if self.from_y == 4 and self.to_y == 5 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
-                        side_piece.colour == "B" and side_piece.name == "p" and self.position.B_passant == self.to_x:
-                    self.position.locations[self.to_x][self.to_y - 1] = None
+        # en passant
+        if self.curr_player == "W" and self.curr_piece.name == "p":
+            side_piece = self.position.locations[self.to_x][self.to_y - 1]
+            if self.from_y == 4 and self.to_y == 5 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
+                    side_piece.colour == "B" and side_piece.name == "p" and self.position.B_passant == self.to_x:
+                self.position.locations[self.to_x][self.to_y - 1] = None
 
-            elif self.curr_player == "B" and self.curr_piece.name == "p":
-                side_piece = self.position.locations[self.to_x][self.to_y + 1]
-                if self.from_y == 3 and self.to_y == 2 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
-                        side_piece.colour == "W" and side_piece.name == "p" and self.position.W_passant == self.to_x:
-                    self.position.locations[self.to_x][self.to_y + 1] = None
+        elif self.curr_player == "B" and self.curr_piece.name == "p":
+            side_piece = self.position.locations[self.to_x][self.to_y + 1]
+            if self.from_y == 3 and self.to_y == 2 and abs(self.to_x - self.from_x) == 1 and side_piece is not None and \
+                    side_piece.colour == "W" and side_piece.name == "p" and self.position.W_passant == self.to_x:
+                self.position.locations[self.to_x][self.to_y + 1] = None
 
-            # move the rook for castling
-            if self.curr_piece.name == "K":
-                # white castling short
-                if self.from_x == 4 and self.from_y == 0 and self.to_x == 6 and self.to_y == 0:
-                    self.position.locations[7][0] = None
-                    self.position.locations[5][0] = Piece("W", "R")
-                    self.position.W_King_moved = True
-                    self.position.W_7_Rook_moved = True
+        # move the rook for castling
+        if self.curr_piece.name == "K":
+            # white castling short
+            if self.from_x == 4 and self.from_y == 0 and self.to_x == 6 and self.to_y == 0:
+                self.position.locations[7][0] = None
+                self.position.locations[5][0] = Piece("W", "R")
+                self.position.W_King_moved = True
+                self.position.W_7_Rook_moved = True
 
-                # white castling long
-                elif self.from_x == 4 and self.from_y == 0 and self.to_x == 2 and self.to_y == 0:
-                    self.position.locations[0][0] = None
-                    self.position.locations[3][0] = Piece("W", "R")
-                    self.position.W_King_moved = True
-                    self.position.W_0_Rook_moved = True
+            # white castling long
+            elif self.from_x == 4 and self.from_y == 0 and self.to_x == 2 and self.to_y == 0:
+                self.position.locations[0][0] = None
+                self.position.locations[3][0] = Piece("W", "R")
+                self.position.W_King_moved = True
+                self.position.W_0_Rook_moved = True
 
-                # black castling short
-                if self.from_x == 4 and self.from_y == 7 and self.to_x == 6 and self.to_y == 7:
-                    self.position.locations[7][7] = None
-                    self.position.locations[5][7] = Piece("B", "R")
-                    self.position.B_King_moved = True
-                    self.position.B_7_Rook_moved = True
+            # black castling short
+            if self.from_x == 4 and self.from_y == 7 and self.to_x == 6 and self.to_y == 7:
+                self.position.locations[7][7] = None
+                self.position.locations[5][7] = Piece("B", "R")
+                self.position.B_King_moved = True
+                self.position.B_7_Rook_moved = True
 
-                # black castling long
-                elif self.from_x == 4 and self.from_y == 7 and self.to_x == 2 and self.to_y == 7:
-                    self.position.locations[0][7] = None
-                    self.position.locations[3][7] = Piece("B", "R")
-                    self.position.B_King_moved = True
-                    self.position.B_0_Rook_moved = True
+            # black castling long
+            elif self.from_x == 4 and self.from_y == 7 and self.to_x == 2 and self.to_y == 7:
+                self.position.locations[0][7] = None
+                self.position.locations[3][7] = Piece("B", "R")
+                self.position.B_King_moved = True
+                self.position.B_0_Rook_moved = True
 
     # test if a move is legal
     def is_legal_move(self):
@@ -112,8 +111,41 @@ class Move:
         if self.next_piece is not None and self.next_piece.colour == self.curr_player:
             return False
 
-        # todo: check if King would be in check still
+        # check if King would be in check
+        # alter the game board to be the new position and then change it back
 
+        # get the position of the King
+        King_pos = [10, 10]
+
+        # todo: maybe try the reverse order for black
+        for x in [0, 1, 2, 3, 4, 5, 6, 7]:
+            for y in [0, 1, 2, 3, 4, 5, 6, 7]:
+                if self.position.locations[x][y] is not None and self.position.locations[x][y].get_name() == "K" and \
+                        self.position.locations[x][y].get_colour() == self.curr_player:
+                    King_pos = [x, y]
+                    break
+            if King_pos[0] != 10:
+                break
+
+        # store the two important pieces
+        new_loc_piece = self.position.locations[self.to_x][self.to_y]
+        orig_loc_piece = self.position.locations[self.from_x][self.from_y]
+
+        # update the board to the new potential position
+        self.position.locations[self.from_x][self.from_y] = None
+        self.position.locations[self.to_x][self.to_y] = orig_loc_piece
+
+        # If the King would be under attack return False
+        if self.position.is_attacked(King_pos[0], King_pos[1], self.opp_player):
+            self.position.locations[self.from_x][self.from_y] = orig_loc_piece
+            self.position.locations[self.to_x][self.to_y] = new_loc_piece
+            print("King is in check")
+            return False
+        else:
+            self.position.locations[self.from_x][self.from_y] = orig_loc_piece
+            self.position.locations[self.to_x][self.to_y] = new_loc_piece
+
+        # check if the piece moves how it's supposed to
         if self.curr_piece.name == "p":
             return self.is_legal_pawn_move()
 
@@ -328,9 +360,6 @@ class Move:
                     # check to make sure King does not move through check
                     if not self.position.is_attacked(4, 0, "B") and not self.position.is_attacked(5, 0, "B") and \
                             not self.position.is_attacked(6, 0, "B"):
-                        # todo: make sure the actual move handles these variables
-                        # self.position.W_King_moved = True
-                        # self.W_7_Rook_moved = True
                         return True
                     else:
                         return False
@@ -425,39 +454,39 @@ class Position:
         self.B_passant = None
 
         # set the white pieces
-        self.locations[0][1] = Piece("W", "p")
-        self.locations[1][1] = Piece("W", "p")
-        self.locations[2][1] = Piece("W", "p")
-        self.locations[3][1] = Piece("W", "p")
-        self.locations[4][1] = Piece("W", "p")
-        self.locations[5][1] = Piece("W", "p")
-        self.locations[6][1] = Piece("W", "p")
-        self.locations[7][1] = Piece("W", "p")
+        # self.locations[0][1] = Piece("W", "p")
+        # self.locations[1][1] = Piece("W", "p")
+        # self.locations[2][1] = Piece("W", "p")
+        # self.locations[3][1] = Piece("W", "p")
+        # self.locations[4][1] = Piece("W", "p")
+        # self.locations[5][1] = Piece("W", "p")
+        # self.locations[6][1] = Piece("W", "p")
+        # self.locations[7][1] = Piece("W", "p")
         self.locations[0][0] = Piece("W", "R")
-        self.locations[1][0] = Piece("W", "N")
-        self.locations[2][0] = Piece("W", "B")
+        # self.locations[1][0] = Piece("W", "N")
+        # self.locations[2][0] = Piece("W", "B")
         self.locations[3][0] = Piece("W", "Q")
         self.locations[4][0] = Piece("W", "K")
-        self.locations[5][0] = Piece("W", "B")
-        self.locations[6][0] = Piece("W", "N")
+        # self.locations[5][0] = Piece("W", "B")
+        # self.locations[6][0] = Piece("W", "N")
         self.locations[7][0] = Piece("W", "R")
 
         # set the black pieces
-        self.locations[0][6] = Piece("B", "p")
-        self.locations[1][6] = Piece("B", "p")
-        self.locations[2][6] = Piece("B", "p")
-        self.locations[3][6] = Piece("B", "p")
-        self.locations[4][6] = Piece("B", "p")
-        self.locations[5][6] = Piece("B", "p")
-        self.locations[6][6] = Piece("B", "p")
-        self.locations[7][6] = Piece("B", "p")
+        # self.locations[0][6] = Piece("B", "p")
+        # self.locations[1][6] = Piece("B", "p")
+        # self.locations[2][6] = Piece("B", "p")
+        # self.locations[3][6] = Piece("B", "p")
+        # self.locations[4][6] = Piece("B", "p")
+        # self.locations[5][6] = Piece("B", "p")
+        # self.locations[6][6] = Piece("B", "p")
+        # self.locations[7][6] = Piece("B", "p")
         self.locations[0][7] = Piece("B", "R")
-        self.locations[1][7] = Piece("B", "N")
-        self.locations[2][7] = Piece("B", "B")
+        # self.locations[1][7] = Piece("B", "N")
+        # self.locations[2][7] = Piece("B", "B")
         self.locations[3][7] = Piece("B", "Q")
         self.locations[4][7] = Piece("B", "K")
-        self.locations[5][7] = Piece("B", "B")
-        self.locations[6][7] = Piece("B", "N")
+        # self.locations[5][7] = Piece("B", "B")
+        # self.locations[6][7] = Piece("B", "N")
         self.locations[7][7] = Piece("B", "R")
 
     #player can be "W" or "B"
@@ -701,9 +730,12 @@ class Game:
 
         self.position = Position()  # set up a new position on game start
         self.drawing_moves = 0  # resets on a pawn move or piece capture, if this number reaches 50 the game is a draw
-        self.position_history = []  # this will log all of the positions and then check if the same has been reached 3 times
         self.curr_player = "W"
         self.opp_player = "B"
+
+        fen_converter = FEN_converter(self.position, self.curr_player)
+        fen = fen_converter.convert_to_FEN()
+        self.position_history = [fen]  # this will log all of the positions then check if the same has been reached 3 times
 
     # executes a move
     def move(self, from_x, from_y, to_x, to_y):
@@ -727,17 +759,17 @@ class Game:
             elif from_piece.colour == "B":
                 self.drawing_moves += 1
 
-            # add the new position to the list of positions
-            fen_converter = FEN_converter(self.position, self.curr_player)
-            fen = fen_converter.convert_to_FEN()
-            self.position_history.append(fen)
-
             if self.curr_player == "W":
                 self.curr_player = "B"
                 self.opp_player = "W"
             else:
                 self.curr_player = "W"
                 self.opp_player = "B"
+
+            # add the new position to the list of positions
+            fen_converter = FEN_converter(self.position, self.curr_player)
+            fen = fen_converter.convert_to_FEN()
+            self.position_history.append(fen)
 
         # if the move provided was not legal:
         else:
@@ -753,7 +785,7 @@ class Game:
             print("Stalemate!")
             return True
 
-        if self.repeated_position():
+        if self.is_repeated_position():
             print("Draw by repeated position!")
             return True
 
@@ -761,7 +793,7 @@ class Game:
             print("Draw, 50 moves without capture or pawn move")
             return True
 
-        if self.is_insuffient_material():
+        if self.is_insufficient_material():
             print("Draw by insufficient material!")
             return True
 
@@ -835,35 +867,119 @@ class Game:
         legal_moves = self.get_all_legal_moves()
         return len(legal_moves) == 0
 
-    # todo:
     # if same position is reached 3 times a player can call a draw
-    def repeated_position(self):
+    def is_repeated_position(self):
+
+        # get the current position
+        fen_converter = FEN_converter(self.position, self.curr_player)
+        fen = fen_converter.convert_to_FEN()
+
+        # check if this position has been reached 3 times
+        count = self.position_history.count(fen)
+
+        # should only be 3 or less but have > just in case
+        if count >= 3:
+            return True
+
         return False
 
     # if no piece has been captured or pawn moved in 50 turns a player can claim a draw
     def is_50_moves(self):
         return self.drawing_moves == 50
 
-    # todo:
+    # todo: update QvQ scenarios
     # if insuffiencient material for a checkmate by either side the game is a draw
     # the draws are K vs.K, K+B vs. K, K+N vs. K, and K+B vs K+B of same colour
-    # however I may also include pieces where a checkmate cannot be forced with reasonably play
-    # these combos are: K+N+N v K, K+R vs. K+R and K+R vs. K+N or K+B
-    def is_insuffient_material(self):
+    # I also include pieces where a checkmate cannot be forced with reasonably play to simulate agreeing to a draw
+    # these combos are: K+N+N v K, K+R vs. K+R, K+R vs. K+N or K+B, K+B vs K+B of opposite colours, K+N vs K+N
+    #
+    # K+Q vs K+Q is a draw other than some rare positions will count as a draw for now may update later
+    def is_insufficient_material(self):
 
+        # get the pieces for each player
         black_pieces = []
         white_pieces = []
+        for x in [0, 1, 2, 3, 4, 5, 6, 7]:
+            for y in [0, 1, 2, 3, 4, 5, 6, 7]:
+                curr_piece = self.position.locations[x][y]
+                if curr_piece is not None:
+                    # if any player has a pawn return False, no need to do the whole loop
+                    if curr_piece.name == "p":
+                        return False
+                    if curr_piece.colour == "W":
+                        white_pieces.append(curr_piece.name)
+                    else:
+                        black_pieces.append(curr_piece.name)
 
-        return False
+        # King vs King
+        if len(white_pieces) == 1 and len(black_pieces) == 1:
+            return True
 
-    # todo
+        # if one side has 3 or more pieces it is not a draw other than K+N+N vs K
+        if len(black_pieces) >= 3 or len(white_pieces) >= 3:
+            # check if K+N+N vs K, note all positions of length 1 are just the King
+            if len(black_pieces) == 3 and len(white_pieces) == 1:
+                if black_pieces.count("N") == 2:
+                    return True
+            if len(white_pieces) == 3 and len(black_pieces) == 1:
+                if white_pieces.count("N") == 2:
+                    return True
+            return False
+
+        # 1v2
+        # Check when black has 1 piece and white has 2
+        if len(black_pieces) == 1:
+            if white_pieces.count("N") == 1 or white_pieces.count("B") == 1:
+                return True
+            return False
+
+        # Check when black has 1 piece and white has 2
+        if len(white_pieces) == 1:
+            if black_pieces.count("N") == 1 or black_pieces.count("B") == 1:
+                return True
+            return False
+
+        # 2v2
+        # check for Q vs. Q
+        if black_pieces.count("Q") == 1 and white_pieces.count("Q") == 1:
+            return True
+
+        # if one side has a queen return False, the Queen wins
+        if black_pieces.count("Q") == 1 or white_pieces.count("Q") == 1:
+            return True
+
+        # all other 2 piece vs 2 piece scenarios are draws
+        return True
+
+
     # winning material
     # may add a function to consider a game won for the MCTS if we reach K vs. K+R, K vs. K+Q, or K vs. K+B+B
+    # K+Q vs K+R, K+Q vs. K+B, K+Q vs K+N, K vs. K+N+B or K vs any 3+ peices
+    # todo : implement the below
+    # if one player has a winning combo and other pieces or pawns it is also a win
     # Assuming the King cannot immediately capture one of these pieces
     def winning_material(self):
 
-        black_pieces = []
-        white_pieces = []
+        # get the pieces for each player
+        curr_pieces = []
+        opp_pieces = []
+        for x in [0, 1, 2, 3, 4, 5, 6, 7]:
+            for y in [0, 1, 2, 3, 4, 5, 6, 7]:
+                curr_piece = self.position.locations[x][y]
+                if curr_piece is not None:
+                    # if any player has a pawn return False, no need to do the whole loop
+                    if curr_piece.name == "p":
+                        return False
+                    if curr_piece.colour == self.curr_player:
+                        curr_pieces.append(curr_piece.name)
+                    else:
+                        opp_pieces.append(curr_piece.name)
+
+        # if the current player only has a king return False
+        if len(curr_pieces) == 1:
+            return False
+
+        # if the opp player
 
         return False
 
