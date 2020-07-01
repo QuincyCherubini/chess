@@ -114,9 +114,16 @@ class Move:
         # check if King would be in check
         # alter the game board to be the new position and then change it back
 
+        # store the two important pieces
+        new_loc_piece = self.position.locations[self.to_x][self.to_y]
+        orig_loc_piece = self.position.locations[self.from_x][self.from_y]
+
+        # update the board to the new potential position
+        self.position.locations[self.from_x][self.from_y] = None
+        self.position.locations[self.to_x][self.to_y] = orig_loc_piece
+
         # get the position of the King
         King_pos = [10, 10]
-
         # todo: maybe try the reverse order for black
         for x in [0, 1, 2, 3, 4, 5, 6, 7]:
             for y in [0, 1, 2, 3, 4, 5, 6, 7]:
@@ -127,19 +134,10 @@ class Move:
             if King_pos[0] != 10:
                 break
 
-        # store the two important pieces
-        new_loc_piece = self.position.locations[self.to_x][self.to_y]
-        orig_loc_piece = self.position.locations[self.from_x][self.from_y]
-
-        # update the board to the new potential position
-        self.position.locations[self.from_x][self.from_y] = None
-        self.position.locations[self.to_x][self.to_y] = orig_loc_piece
-
         # If the King would be under attack return False
         if self.position.is_attacked(King_pos[0], King_pos[1], self.opp_player):
             self.position.locations[self.from_x][self.from_y] = orig_loc_piece
             self.position.locations[self.to_x][self.to_y] = new_loc_piece
-            print("King is in check")
             return False
         else:
             self.position.locations[self.from_x][self.from_y] = orig_loc_piece
@@ -344,7 +342,8 @@ class Move:
         x_diff = abs(self.from_x - self.to_x)
         y_diff = abs(self.from_y - self.to_y)
 
-        if (x_diff == 0 and y_diff == 1) or (x_diff == 1 and y_diff == 0):
+        # check if the King is only moving one square
+        if (x_diff == 0 and y_diff == 1) or (x_diff == 1 and y_diff == 0) or (x_diff == 1 and y_diff == 1):
             if self.curr_piece.colour == 'W':
                 self.position.W_King_moved = False
             elif self.curr_piece.colour == 'B':
@@ -433,6 +432,9 @@ class Move:
             else:
                 print("Please enter a valid piece")
 
+    def print_move(self):
+        print("From [{}, {}] to [{}, {}]".format(self.from_x, self.from_y, self.to_x, self.to_y))
+
 
 class Position:
 
@@ -454,39 +456,39 @@ class Position:
         self.B_passant = None
 
         # set the white pieces
-        # self.locations[0][1] = Piece("W", "p")
-        # self.locations[1][1] = Piece("W", "p")
-        # self.locations[2][1] = Piece("W", "p")
-        # self.locations[3][1] = Piece("W", "p")
-        # self.locations[4][1] = Piece("W", "p")
-        # self.locations[5][1] = Piece("W", "p")
-        # self.locations[6][1] = Piece("W", "p")
-        # self.locations[7][1] = Piece("W", "p")
+        self.locations[0][1] = Piece("W", "p")
+        self.locations[1][1] = Piece("W", "p")
+        self.locations[2][1] = Piece("W", "p")
+        self.locations[3][1] = Piece("W", "p")
+        self.locations[4][1] = Piece("W", "p")
+        self.locations[5][1] = Piece("W", "p")
+        self.locations[6][1] = Piece("W", "p")
+        self.locations[7][1] = Piece("W", "p")
         self.locations[0][0] = Piece("W", "R")
-        # self.locations[1][0] = Piece("W", "N")
-        # self.locations[2][0] = Piece("W", "B")
+        self.locations[1][0] = Piece("W", "N")
+        self.locations[2][0] = Piece("W", "B")
         self.locations[3][0] = Piece("W", "Q")
         self.locations[4][0] = Piece("W", "K")
-        # self.locations[5][0] = Piece("W", "B")
-        # self.locations[6][0] = Piece("W", "N")
+        self.locations[5][0] = Piece("W", "B")
+        self.locations[6][0] = Piece("W", "N")
         self.locations[7][0] = Piece("W", "R")
 
         # set the black pieces
-        # self.locations[0][6] = Piece("B", "p")
-        # self.locations[1][6] = Piece("B", "p")
-        # self.locations[2][6] = Piece("B", "p")
-        # self.locations[3][6] = Piece("B", "p")
-        # self.locations[4][6] = Piece("B", "p")
-        # self.locations[5][6] = Piece("B", "p")
-        # self.locations[6][6] = Piece("B", "p")
-        # self.locations[7][6] = Piece("B", "p")
+        self.locations[0][6] = Piece("B", "p")
+        self.locations[1][6] = Piece("B", "p")
+        self.locations[2][6] = Piece("B", "p")
+        self.locations[3][6] = Piece("B", "p")
+        self.locations[4][6] = Piece("B", "p")
+        self.locations[5][6] = Piece("B", "p")
+        self.locations[6][6] = Piece("B", "p")
+        self.locations[7][6] = Piece("B", "p")
         self.locations[0][7] = Piece("B", "R")
-        # self.locations[1][7] = Piece("B", "N")
-        # self.locations[2][7] = Piece("B", "B")
+        self.locations[1][7] = Piece("B", "N")
+        self.locations[2][7] = Piece("B", "B")
         self.locations[3][7] = Piece("B", "Q")
         self.locations[4][7] = Piece("B", "K")
-        # self.locations[5][7] = Piece("B", "B")
-        # self.locations[6][7] = Piece("B", "N")
+        self.locations[5][7] = Piece("B", "B")
+        self.locations[6][7] = Piece("B", "N")
         self.locations[7][7] = Piece("B", "R")
 
     #player can be "W" or "B"
@@ -650,8 +652,8 @@ class Position:
                     return True
                 else:
                     break
-            temp_y += 1
-            temp_x += 1
+            temp_y -= 1
+            temp_x -= 1
 
         # if no diagonally is attacking return False
         return False
@@ -850,8 +852,8 @@ class Game:
 
         # get the location of the player's King
         King_pos = None
-        for x in range(0, 8):
-            for y in range(0, 8):
+        for x in [0, 1, 2, 3, 4, 5, 6, 7]:
+            for y in [0, 1, 2, 3, 4, 5, 6, 7]:
                 cur_loc = self.position.locations[x][y]
                 if cur_loc is not None and cur_loc.name == "K" and cur_loc.colour == player_colour:
                     King_pos = [x, y]
@@ -996,13 +998,21 @@ class Game:
                 if cur_loc is not None and cur_loc.colour == self.curr_player:
                     # Pawn
                     if cur_loc.name == "p":
+                        # the y positions of possible next moves, dub_y is for moving 2 spaces on a first move
                         if self.curr_player == "W":
                             next_y = y + 1
+                            dub_y = y + 2
                         else:
                             next_y = y - 1
+                            dub_y = y - 2
 
                         # check if pawn can move forward
                         new_move = Move(x, y, x, next_y, self.position, self.curr_player)
+                        if new_move.is_legal_move():
+                            legal_moves.append(new_move)
+
+                        # check if pawn can move forward 2 steps
+                        new_move = Move(x, y, x, dub_y, self.position, self.curr_player)
                         if new_move.is_legal_move():
                             legal_moves.append(new_move)
 
@@ -1017,7 +1027,7 @@ class Game:
                                 legal_moves.append(new_move)
 
                     # Knight
-                    elif cur_loc.name == "N":
+                    if cur_loc.name == "N":
                         for new_x in [x-2, x-1, x+1, x+2]:
                             for new_y in [y-2, y-1, y+1, y+2]:
                                 if self.position.is_in_range(new_x, new_y):
@@ -1026,7 +1036,7 @@ class Game:
                                         legal_moves.append(new_move)
 
                     # Bishop or Queen
-                    elif cur_loc.name == "B" or cur_loc.name == "Q":
+                    if cur_loc.name == "B" or cur_loc.name == "Q":
 
                         # up and left
                         new_x = x + 1
@@ -1073,7 +1083,7 @@ class Game:
                             new_y -= 1
 
                     # Rook or Queen
-                    elif cur_loc.name == "R" or cur_loc.name == "Q":
+                    if cur_loc.name == "R" or cur_loc.name == "Q":
 
                         # up
                         new_y = y + 1
@@ -1112,13 +1122,32 @@ class Game:
                             new_x += 1
 
                     # King
-                    elif cur_loc.name == "K":
+                    if cur_loc.name == "K":
+                        # regular King move
                         for new_x in range(x - 1, x + 2):
                             for new_y in range(y - 1, y + 2):
                                 if self.position.is_in_range(new_x, new_y):
                                     new_move = Move(x, y, new_x, new_y, self.position, self.curr_player)
                                     if new_move.is_legal_move():
                                         legal_moves.append(new_move)
+                        # castling
+                        # White
+                        if self.curr_player == "W" and x == 4 and y == 0:
+                            short_castle = Move(x, y, 6, 0, self.position, self.curr_player)
+                            if short_castle.is_legal_move():
+                                legal_moves.append(short_castle)
+
+                            long_castle = Move(x, y, 2, 0, self.position, self.curr_player)
+                            if long_castle.is_legal_move():
+                                legal_moves.append(long_castle)
+                        elif self.curr_player == "B" and x == 4 and y == 7:
+                            short_castle = Move(x, y, 6, 7, self.position, self.curr_player)
+                            if short_castle.is_legal_move():
+                                legal_moves.append(short_castle)
+
+                            long_castle = Move(x, y, 2, 7, self.position, self.curr_player)
+                            if long_castle.is_legal_move():
+                                legal_moves.append(long_castle)
 
         return legal_moves
 
